@@ -4,27 +4,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ZAUakaAlexey/backend_go/internal/responses"
 	"github.com/go-playground/validator/v10"
 )
 
-// ValidationError представляет ошибку валидации с удобным форматом
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-	Tag     string `json:"tag,omitempty"`
-	Value   string `json:"value,omitempty"`
-}
-
-// ValidationErrors список ошибок валидации
-type ValidationErrors []ValidationError
-
-// FormatValidationErrors форматирует ошибки валидации в понятный формат
-func FormatValidationErrors(err error) ValidationErrors {
-	var errors ValidationErrors
+func FormatValidationErrors(err error) []responses.ValidationError {
+	var errors []responses.ValidationError
 
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range validationErrors {
-			errors = append(errors, ValidationError{
+			errors = append(errors, responses.ValidationError{
 				Field:   toSnakeCase(e.Field()),
 				Message: getErrorMessage(e),
 				Tag:     e.Tag(),
@@ -35,7 +24,6 @@ func FormatValidationErrors(err error) ValidationErrors {
 	return errors
 }
 
-// getErrorMessage возвращает человекочитаемое сообщение об ошибке
 func getErrorMessage(e validator.FieldError) string {
 	field := e.Field()
 
@@ -48,6 +36,8 @@ func getErrorMessage(e validator.FieldError) string {
 		return fmt.Sprintf("%s must be at least %s characters", field, e.Param())
 	case "max":
 		return fmt.Sprintf("%s must be at most %s characters", field, e.Param())
+	case "strongpassword":
+		return "Password must be at least 8 characters and contain at least 3 of: uppercase, lowercase, number, special character"
 	case "username":
 		return "Username must be 3-20 characters and contain only letters, numbers, dash and underscore"
 	case "fullname":
@@ -67,7 +57,6 @@ func getErrorMessage(e validator.FieldError) string {
 	}
 }
 
-// toSnakeCase конвертирует CamelCase в snake_case для JSON
 func toSnakeCase(s string) string {
 	var result strings.Builder
 

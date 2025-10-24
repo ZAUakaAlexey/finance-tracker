@@ -18,7 +18,6 @@ func main() {
 	}
 
 	err = database.Connect(cfg)
-
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
@@ -29,9 +28,10 @@ func main() {
 
 	r := gin.Default()
 
+	r.Use(middlewares.ErrorHandler())
+
 	api := r.Group("/api")
 	{
-		api.GET("/health", handlers.Health)
 
 		auth := api.Group("/auth")
 		{
@@ -42,13 +42,20 @@ func main() {
 		users := api.Group("/users")
 		users.Use(middlewares.Authenticate)
 		{
-			users.GET("/:id", handlers.GetUser)
-			users.PATCH("/:id", handlers.UpdateUser)
-			users.DELETE("/:id")
-			users.GET("/me", handlers.GetCurrentUser)
+			users.GET("", handlers.GetUsers)           // GET /api/users?page=1&per_page=10
+			users.GET("/search", handlers.SearchUsers) // GET /api/users/search?q=john&page=1&per_page=10
+			users.GET("/me", handlers.GetCurrentUser)  // GET /api/users/me
+			users.GET("/:id", handlers.GetUser)        // GET /api/users/:id
+			users.PUT("/:id", handlers.UpdateUser)     // PUT /api/users/:id
+			users.DELETE("/:id", handlers.DeleteUser)  // DELETE /api/users/:id
 		}
 	}
 
+	r.NoRoute(middlewares.NotFound())
+
 	log.Printf("Server starting on port %s", cfg.Port)
+	if cfg.Port == "" {
+		cfg.Port = "8080"
+	}
 	r.Run(":" + cfg.Port)
 }

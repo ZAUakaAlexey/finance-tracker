@@ -7,6 +7,7 @@ import (
 	"github.com/ZAUakaAlexey/backend_go/internal/config"
 	"github.com/ZAUakaAlexey/backend_go/internal/database"
 	"github.com/ZAUakaAlexey/backend_go/internal/models"
+	"github.com/ZAUakaAlexey/backend_go/internal/responses"
 	"github.com/ZAUakaAlexey/backend_go/internal/validators"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -49,18 +50,17 @@ func Signup(c *gin.Context) {
 	var input SignupInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Validation failed",
-			"details": validators.FormatValidationErrors(err),
-		})
+		validationErrors := validators.FormatValidationErrors(err)
+		responses.ValidationErrorResponse(c, "Validation failed", validationErrors)
 		return
 	}
 
 	var existingUser models.User
 	if err := database.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"error": "User with this email already exists",
-		})
+		errors := map[string][]string{
+			"email": {"User with this email already exists"},
+		}
+		responses.ErrorResponse(c, http.StatusConflict, "User already exists", errors)
 		return
 	}
 
@@ -69,9 +69,7 @@ func Signup(c *gin.Context) {
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to hash password",
-		})
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Failed to hash password", nil)
 		return
 	}
 
@@ -82,43 +80,42 @@ func Signup(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to create user",
-			"details": err.Error(),
-		})
+		errors := map[string][]string{
+			"database": {err.Error()},
+		}
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Failed to create user", errors)
 		return
 	}
 
 	token, err := generateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate token",
-		})
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate token", nil)
 		return
 	}
 
-	c.JSON(http.StatusCreated, AuthResponse{
+	authResponse := AuthResponse{
 		Token: token,
 		User:  user,
-	})
+	}
+
+	responses.SuccessResponse(c, http.StatusCreated, authResponse, "User created successfully")
 }
 
 func Login(c *gin.Context) {
 	var input LoginInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Validation failed",
-			"details": validators.FormatValidationErrors(err),
-		})
+		validationErrors := validators.FormatValidationErrors(err)
+		responses.ValidationErrorResponse(c, "Validation failed", validationErrors)
 		return
 	}
 
 	var user models.User
 	if err := database.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid email or password",
-		})
+		errors := map[string][]string{
+			"credentials": {"Invalid email or password"},
+		}
+		responses.ErrorResponse(c, http.StatusUnauthorized, "Authentication failed", errors)
 		return
 	}
 
@@ -126,24 +123,25 @@ func Login(c *gin.Context) {
 		[]byte(user.Password),
 		[]byte(input.Password),
 	); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid email or password",
-		})
+		errors := map[string][]string{
+			"credentials": {"Invalid email or password"},
+		}
+		responses.ErrorResponse(c, http.StatusUnauthorized, "Authentication failed", errors)
 		return
 	}
 
 	token, err := generateToken(user.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate token",
-		})
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate token", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, AuthResponse{
+	authResponse := AuthResponse{
 		Token: token,
 		User:  user,
-	})
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, authResponse, "Login successful")
 }
 
 func generateToken(userID uint) (string, error) {
