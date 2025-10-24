@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: finance-tracker-postgres
+    environment:
+      POSTGRES_DB: finance_tracker_db
+      POSTGRES_USER: ft_user
+      POSTGRES_PASSWORD: your_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
