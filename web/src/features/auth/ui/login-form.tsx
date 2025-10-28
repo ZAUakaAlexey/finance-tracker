@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils.ts";
 
 import { useForm } from "@tanstack/react-form";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LoginCredentials } from "@/types/auth.types.ts";
+import type { LoginCredentials } from "@/types/auth.types.ts";
 import { loginFn } from "@/server/auth.tsx";
 
 import { FormInput } from "@/components/form-components/form-input.tsx";
@@ -116,7 +116,7 @@ export function LoginForm({
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={!canSubmit}
+                      disabled={!canSubmit || isSubmitting}
                     >
                       Sign In
                     </Button>

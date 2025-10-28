@@ -8,7 +8,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
-// import Header from "../components/Header";
+import { ThemeProvider } from "@/components/theme-provider.tsx";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -18,7 +18,6 @@ import appCss from "../styles.css?url";
 
 import type { QueryClient } from "@tanstack/react-query";
 import { useAppSession } from "@/utils/session.ts";
-// test
 import { createServerFn } from "@tanstack/react-start";
 
 interface MyRouterContext {
@@ -66,7 +65,28 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
   }),
-
+  notFoundComponent: () => {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            404
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+            Page not found.
+          </p>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
+          >
+            Return Home
+          </a>
+        </div>
+      </div>
+    );
+  },
   shellComponent: RootDocument,
 });
 
@@ -78,21 +98,23 @@ function RootDocument() {
       </head>
       <body>
         {/*<Header />*/}
-        <Outlet />
-        <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-            TanStackQueryDevtools,
-            StoreDevtools,
-          ]}
-        />
-        <Scripts />
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <Outlet />
+          <TanStackDevtools
+            config={{
+              position: "bottom-right",
+            }}
+            plugins={[
+              {
+                name: "Tanstack Router",
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+              TanStackQueryDevtools,
+              StoreDevtools,
+            ]}
+          />
+          <Scripts />
+        </ThemeProvider>
       </body>
     </html>
   );
